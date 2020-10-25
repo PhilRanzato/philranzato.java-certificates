@@ -10,8 +10,9 @@
     -keyalg {{ key.algorithm }} \
     -validity {{ key.validity }} \
     -storepass '{{ keystore.pass }}' \
-    -keypass '{{ key.pass }}' \
+    -keypass '{{ keystore.pass }}' \
     -storetype pkcs12
+  become: true
 
 # keytool -certreq -keystore logstash.keystore.jks -alias logstash -file logstash.csr -storepass 'xxxxxx' -keypass 'xxxxxx'
 - name: "Export the certificate of the user from the keystore"
@@ -22,7 +23,8 @@
     -alias {{ key.alias }} \
     -file {{ keystore.dir }}/{{ keystore.csr }} \
     -storepass '{{ keystore.pass }}' \
-    -keypass '{{ key.pass }}' 
+    -keypass '{{ keystore.pass }}' 
+  become: true
 
 # openssl x509 -req -CA ca-cert -CAkey ca-key -in logstash.csr -out logstash.crt -days 3650 -CAcreateserial -passin  pass:'capass'
 - name: "Sign the certificate signing request with the root CA"
@@ -34,6 +36,7 @@
     ownca_privatekey_passphrase: "{{ ca.pass }}"
     ownca_not_after: "{{ ca.validity }}"
     provider: ownca
+  become: true
 
 # keytool -importcert -file ca-cert -alias ca -keystore logstash.keystore.jks -storepass 'xxxxxx' -keypass 'xxxxxx' -noprompt
 - name: "Import the certificate of the CA into the user keystore"
@@ -42,8 +45,9 @@
     cert_alias: ca
     keystore_path: "{{ keystore.dir }}/{{ keystore.cert_name }}.keystore.jks"
     keystore_pass: "{{ keystore.pass }}"
-    pkcs12_password: "{{ key.pass }}"
+    pkcs12_password: "{{ keystore.pass }}"
     state: present
+  become: true
 
 # keytool -importcert -file logstash.crt -alias logstash -keystore logstash.keystore.jks -storepass 'xxxxxx' -keypass 'xxxxxx'
 - name: "Import the signed certificate into the user keystore. Make sure to use the same `-alias` as you used ealier"
@@ -52,8 +56,9 @@
     cert_alias: "{{ key.alias }}"
     keystore_path: "{{ keystore.dir }}/{{ keystore.cert_name }}.keystore.jks"
     keystore_pass: "{{ keystore.pass }}"
-    pkcs12_password: "{{ key.pass }}"
+    pkcs12_password: "{{ keystore.pass }}"
     state: present
+  become: true
 
 # chwon root: /etc/logstash/logstash.keystore.jks
 - name: "Set permissions to the keystore"
@@ -61,5 +66,6 @@
     path: "{{ keystore.dir }}/{{ keystore.cert_name }}.keystore.jks"
     owner: "{{ keystore.owner }}"
     group: "{{ keystore.group }}"
+  become: true
 
 

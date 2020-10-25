@@ -1,6 +1,6 @@
 ---
 - name: "Preflight Checks"
-  include_tasks: "00-preflight-checks.yml"
+  include_tasks: "00-prefligth-checks.yml"
 
 - name: "Create {{ key.alias }} certificate"
   include_tasks: "01-java-cert.yml"

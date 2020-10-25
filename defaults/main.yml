@@ -20,5 +20,4 @@ key:
   alias: key
   common_name: java
   algorithm: RSA
-  pass: kjv
   validity: '3650'
