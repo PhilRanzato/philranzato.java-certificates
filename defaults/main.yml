@@ -1,0 +1,24 @@
+---
+# CA
+ca:
+  dir: /opt/private/ssl
+  cert: ca.crt
+  key: ca.key
+  validity: "+3650d"
+  pass: capass
+
+# Keystore
+keystore:
+  dir: /opt/private/ssl
+  cert_name: kystr
+  csr: csr
+  pass: kystrpwd
+  owner: root
+  group: root
+
+key:
+  alias: key
+  common_name: java
+  algorithm: RSA
+  pass: kjv
+  validity: '3650'

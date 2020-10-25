@@ -1,0 +1,65 @@
+---
+# keytool -genkey -keystore logstash.keystore.jks -alias logstash -dname CN=logstash -keyalg RSA -validity 3650 -storepass 'xxxxxx' -keypass 'xxxxxx' -storetype pkcs12
+- name: "Create the keystore key"
+  shell: | 
+    keytool \
+    -genkey \
+    -keystore {{ keystore.dir }}/{{ keystore.cert_name }}.keystore.jks \
+    -alias {{ key.alias }} \
+    -dname CN={{ key.common_name }} \
+    -keyalg {{ key.algorithm }} \
+    -validity {{ key.validity }} \
+    -storepass '{{ keystore.pass }}' \
+    -keypass '{{ key.pass }}' \
+    -storetype pkcs12
+
+# keytool -certreq -keystore logstash.keystore.jks -alias logstash -file logstash.csr -storepass 'xxxxxx' -keypass 'xxxxxx'
+- name: "Export the certificate of the user from the keystore"
+  shell: | 
+    keytool \
+    -certreq \
+    -keystore {{ keystore.dir }}/{{ keystore.cert_name }}.keystore.jks \
+    -alias {{ key.alias }} \
+    -file {{ keystore.dir }}/{{ keystore.csr }} \
+    -storepass '{{ keystore.pass }}' \
+    -keypass '{{ key.pass }}' 
+
+# openssl x509 -req -CA ca-cert -CAkey ca-key -in logstash.csr -out logstash.crt -days 3650 -CAcreateserial -passin  pass:'capass'
+- name: "Sign the certificate signing request with the root CA"
+  openssl_certificate:
+    path: "{{ keystore.dir }}/{{ keystore.cert_name }}.crt"
+    csr_path: "{{ keystore.dir }}/{{ keystore.csr }}"
+    ownca_path: "{{ ca.dir }}/{{ ca.cert }}"
+    ownca_privatekey_path: "{{ ca.dir }}/{{ ca.key }}"
+    ownca_privatekey_passphrase: "{{ ca.pass }}"
+    ownca_not_after: "{{ ca.validity }}"
+    provider: ownca
+
+# keytool -importcert -file ca-cert -alias ca -keystore logstash.keystore.jks -storepass 'xxxxxx' -keypass 'xxxxxx' -noprompt
+- name: "Import the certificate of the CA into the user keystore"
+  java_cert:
+    cert_path: "{{ ca.dir }}/{{ ca.cert }}"
+    cert_alias: ca
+    keystore_path: "{{ keystore.dir }}/{{ keystore.cert_name }}.keystore.jks"
+    keystore_pass: "{{ keystore.pass }}"
+    pkcs12_password: "{{ key.pass }}"
+    state: present
+
+# keytool -importcert -file logstash.crt -alias logstash -keystore logstash.keystore.jks -storepass 'xxxxxx' -keypass 'xxxxxx'
+- name: "Import the signed certificate into the user keystore. Make sure to use the same `-alias` as you used ealier"
+  java_cert:
+    cert_path: "{{ keystore.dir }}/{{ keystore.cert_name }}.crt"
+    cert_alias: "{{ key.alias }}"
+    keystore_path: "{{ keystore.dir }}/{{ keystore.cert_name }}.keystore.jks"
+    keystore_pass: "{{ keystore.pass }}"
+    pkcs12_password: "{{ key.pass }}"
+    state: present
+
+# chwon root: /etc/logstash/logstash.keystore.jks
+- name: "Set permissions to the keystore"
+  file:
+    path: "{{ keystore.dir }}/{{ keystore.cert_name }}.keystore.jks"
+    owner: "{{ keystore.owner }}"
+    group: "{{ keystore.group }}"
+
+
